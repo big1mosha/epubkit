@@ -34,7 +34,7 @@ Editing commands take `-o/--out`, or `--in-place` with optional `--backup`. `--d
 
 `create` accepts:
 
-- a directory containing `manifest.json`,
+- a directory containing `book.json` or `manifest.json`,
 - a single `.html` or `.md` file,
 - a directory of numbered `.html`/`.md` files.
 

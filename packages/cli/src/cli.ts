@@ -83,7 +83,7 @@ cli
   );
 
 cli
-  .command("create <input>", "Build an EPUB from book.json and HTML/Markdown files")
+  .command("create <input>", "Build an EPUB from a manifest, HTML or Markdown")
   .option("-o, --out <file>", "Output EPUB")
   .option("--title <title>", "Override the title")
   .option("--author <name>", "Override the author (repeatable)")

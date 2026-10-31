@@ -1,5 +1,5 @@
-import { readFile } from "node:fs/promises";
-import { dirname, isAbsolute, join, resolve } from "node:path";
+import { readdir, readFile } from "node:fs/promises";
+import { basename, dirname, isAbsolute, join, resolve } from "node:path";
 import { marked } from "marked";
 import {
   buildEpub,
@@ -13,7 +13,7 @@ import {
   type PartInput,
   type ThemeName,
 } from "@epubkit/core";
-import { EXIT, fail, isDirectory, readBinary, readText, writeBinary } from "../io.ts";
+import { EXIT, exists, fail, isDirectory, readBinary, readText, writeBinary } from "../io.ts";
 import type { Output } from "../io.ts";
 
 interface ManifestChapter {
@@ -62,9 +62,7 @@ export async function createCommand(
   },
   out: Output,
 ): Promise<void> {
-  const directory = (await isDirectory(input)) ? input : dirname(input);
-  const manifestPath = (await isDirectory(input)) ? join(input, "book.json") : input;
-  const manifest = JSON.parse(await readText(manifestPath)) as Manifest;
+  const { directory, manifest } = await resolveInput(input, options.title);
 
   if (!manifest.title) fail("Manifest is missing a title", EXIT.usage);
   if (!Array.isArray(manifest.parts)) fail("Manifest is missing parts", EXIT.usage);
@@ -165,4 +163,61 @@ export async function createCommand(
 
 export async function readJson<T>(path: string): Promise<T> {
   return JSON.parse(await readFile(path, "utf8")) as T;
+}
+
+/**
+ * Accept a manifest (`book.json` or `manifest.json`), a single HTML/Markdown
+ * file, or a directory of chapter files sorted by name.
+ */
+async function resolveInput(
+  input: string,
+  titleOverride?: string,
+): Promise<{ directory: string; manifest: Manifest }> {
+  if (await isDirectory(input)) {
+    for (const name of ["book.json", "manifest.json"]) {
+      const path = join(input, name);
+      if (await exists(path)) return { directory: input, manifest: await readJson<Manifest>(path) };
+    }
+    return { directory: input, manifest: await manifestFromChapters(input, titleOverride) };
+  }
+
+  if (/\.json$/i.test(input)) {
+    return { directory: dirname(input), manifest: await readJson<Manifest>(input) };
+  }
+  if (/\.(md|markdown|html?)$/i.test(input)) {
+    return { directory: dirname(input), manifest: await manifestFromFile(input, titleOverride) };
+  }
+  return fail(`Unsupported input: ${input} (expected a directory, .json, .html or .md)`, EXIT.usage);
+}
+
+async function manifestFromFile(path: string, titleOverride?: string): Promise<Manifest> {
+  const raw = await readText(path);
+  const heading =
+    /^#\s+(.+)$/m.exec(raw)?.[1]?.trim() ??
+    /<h1[^>]*>([\s\S]*?)<\/h1>/i.exec(raw)?.[1]?.replace(/<[^>]*>/g, "").trim();
+  const title = titleOverride ?? heading ?? titleFromFilename(path);
+  return { title, parts: [{ lessons: [{ title, file: path }] }] };
+}
+
+async function manifestFromChapters(dir: string, titleOverride?: string): Promise<Manifest> {
+  const files = (await readdir(dir))
+    .filter((name) => /\.(md|markdown|html?)$/i.test(name))
+    .sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+
+  if (files.length === 0) fail(`No book.json, manifest.json or chapter files in ${dir}`, EXIT.usage);
+
+  return {
+    title: titleOverride ?? basename(dir),
+    parts: [
+      {
+        lessons: files.map((file) => ({ title: titleFromFilename(file), file })),
+      },
+    ],
+  };
+}
+
+function titleFromFilename(path: string): string {
+  const name = basename(path).replace(/\.(md|markdown|html?)$/i, "");
+  const cleaned = name.replace(/^[\s\d._-]+/, "").replace(/[-_]+/g, " ").trim();
+  return cleaned || name;
 }
