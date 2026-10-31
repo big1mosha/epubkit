@@ -209,6 +209,14 @@ cli
 cli.help();
 cli.version("0.1.0");
 
+// Writing into `head` or a closed pipe is not an error.
+for (const stream of [process.stdout, process.stderr]) {
+  stream.on("error", (error: NodeJS.ErrnoException) => {
+    if (error.code === "EPIPE") process.exit(0);
+    throw error;
+  });
+}
+
 async function main(): Promise<void> {
   cli.parse(process.argv, { run: false });
   const flags = process.argv.slice(2);
