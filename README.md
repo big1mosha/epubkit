@@ -103,7 +103,14 @@ const report = validateEpub(data);
 ## Development
 
 ```bash
+bun install
 bun test
-bunx tsc --noEmit
-bun build packages/cli/src/index.ts --compile --outfile dist/epubkit
+bun run typecheck
+bun run build    # compiled binary in dist/epubkit
 ```
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for layout and conventions.
+
+## License
+
+[MIT](LICENSE)
