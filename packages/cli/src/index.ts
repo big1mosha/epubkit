@@ -1,6 +1,6 @@
 #!/usr/bin/env bun
 import cac from "cac";
-import { CliError, EXIT, createOutput, fail } from "./io.ts";
+import { CliError, EXIT, createOutput } from "./io.ts";
 import type { OutputOptions } from "./io.ts";
 import { infoCommand } from "./commands/info.ts";
 import { extractCommand, packCommand } from "./commands/archive.ts";

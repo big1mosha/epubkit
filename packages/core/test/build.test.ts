@@ -72,10 +72,17 @@ describe("buildEpub", () => {
     const result = buildEpub(sampleBook());
     const epub = Epub.fromBytes(result.data);
     const toc = epub.toc();
-    expect(toc[0]?.label).toBe("প্রচ্ছদ");
+    // Cover is not in TOC; first entry is the first part
+    expect(toc[0]?.label).toBe("প্রথম অংশ");
     const parts = toc.filter((entry) => entry.label.includes("অংশ"));
     expect(parts.length).toBe(2);
+    expect(parts[0]?.children[0]?.label).toBe("১. প্রথম অধ্যায়");
+    expect(parts[0]?.children[1]?.label).toBe("২. দ্বিতীয় অধ্যায়");
     expect(parts[0]?.children[1]?.children.length).toBe(2);
+
+    // end page is at the end of the spine
+    const spine = epub.spineItems();
+    expect(spine[spine.length - 1]?.path).toContain("somapto.xhtml");
   });
 
   test("uses the part page as the chapter page for single same-title lessons", () => {
@@ -111,6 +118,29 @@ describe("buildEpub", () => {
     const cover = await generateCover({ title: "বাংলা বই", authors: ["লেখক"] });
     expect(cover.data.byteLength).toBeGreaterThan(100);
     expect(["image/jpeg", "image/svg+xml"]).toContain(cover.mediaType);
+  });
+
+  test("title page keeps only title and author", () => {
+    const result = buildEpub(
+      sampleBook({
+        cover: undefined,
+        series: "কর্নেল সিরিজ",
+        publisher: "none",
+        extraPages: [{ title: "কিছু কথা", html: "<p>ভূমিকা।</p>" }],
+      }),
+    );
+    const epub = Epub.fromBytes(result.data);
+    const title = epub.readText("OEBPS/text/titlepage.xhtml");
+
+    expect(title).toContain("book-title");
+    expect(title).toContain("book-author");
+    expect(title).not.toContain("book-series");
+    expect(title).not.toContain("class=\"rule\"");
+    expect(title).not.toContain("none");
+
+    const toc = JSON.stringify(epub.toc());
+    expect(toc).not.toContain("কিছু কথা");
+    expect(epub.spineItems().some((item) => item.path.includes("intro-001"))).toBe(true);
   });
 });
 

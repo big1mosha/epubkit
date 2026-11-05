@@ -57,8 +57,8 @@ describe("mergeEpubs", () => {
     const second = Epub.fromBytes(buildEpub(book("দুই", "অধ্যায় দুই")).data);
     const merged = mergeEpubs([first, second], { flat: true });
     const epub = Epub.fromBytes(merged);
-    expect(epub.toc().some((entry) => entry.label === "অধ্যায় এক")).toBe(true);
-    expect(epub.toc().some((entry) => entry.label === "অধ্যায় দুই")).toBe(true);
+    expect(epub.toc().some((entry) => entry.label.includes("অধ্যায় এক"))).toBe(true);
+    expect(epub.toc().some((entry) => entry.label.includes("অধ্যায় দুই"))).toBe(true);
   });
 });
 
@@ -136,7 +136,7 @@ describe("metadata and toc", () => {
   test("updates metadata and toc labels", () => {
     const epub = Epub.fromBytes(buildEpub(book("পুরনো", "অধ্যায়")).data);
     updateMetadata(epub, { title: "নতুন", subjects: ["বিষয়"] });
-    const chapter = epub.toc().find((entry) => entry.label === "অধ্যায়");
+    const chapter = epub.toc().find((entry) => entry.label.includes("অধ্যায়"));
     expect(chapter).toBeDefined();
     expect(setTocLabel(epub, chapter!.href, "নতুন অধ্যায়")).toBe(true);
 

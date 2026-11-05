@@ -30,6 +30,7 @@ export interface BookLabels {
   collected: string;
   personal: string;
   series: string;
+  end: string;
 }
 
 export interface BookImage {
@@ -62,7 +63,12 @@ export interface BookInput {
   fonts?: FontInput[];
   /** Split chapters larger than this many KiB. Default 200. */
   splitSizeKb?: number;
+  includeHalftitle?: boolean;
   includeColophon?: boolean;
+  includeTitlePageInNav?: boolean;
+  includeEnd?: boolean;
+  numberToc?: boolean;
+  extraPages?: ChapterInput[];
   /** Overrides the generated colophon text (plain paragraphs). */
   colophon?: string;
   labels?: Partial<BookLabels>;
@@ -86,6 +92,7 @@ export const BN_LABELS: BookLabels = {
   collected: "সংগ্রহ",
   personal: "ব্যক্তিগত ব্যবহারের জন্য। পুনর্বিতরণ নিষিদ্ধ।",
   series: "সিরিজ",
+  end: "সমাপ্ত",
 };
 
 export const EN_LABELS: BookLabels = {
@@ -99,6 +106,7 @@ export const EN_LABELS: BookLabels = {
   collected: "Collected",
   personal: "For personal use only. Do not redistribute.",
   series: "Series",
+  end: "The End",
 };
 
 export function labelsFor(language: string): BookLabels {

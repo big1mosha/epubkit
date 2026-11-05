@@ -1,5 +1,5 @@
 import { readdir, readFile } from "node:fs/promises";
-import { basename, dirname, isAbsolute, join, resolve } from "node:path";
+import { basename, dirname, extname, isAbsolute, join, relative, resolve, sep } from "node:path";
 import { marked } from "marked";
 import {
   buildEpub,
@@ -7,6 +7,7 @@ import {
   generateCover,
   sanitizeHtml,
   validateEpub,
+  type BookImage,
   type BookInput,
   type ChapterInput,
   type FontInput,
@@ -21,6 +22,19 @@ interface ManifestChapter {
   file?: string;
   html?: string;
   topics?: ManifestChapter[];
+}
+
+interface ManifestExtra {
+  title: string;
+  file?: string;
+  html?: string;
+}
+
+interface ManifestFont {
+  file: string;
+  family?: string;
+  weight?: string;
+  style?: string;
 }
 
 interface ManifestPart {
@@ -44,10 +58,23 @@ interface Manifest {
   cover?: string;
   font?: string;
   fontFamily?: string;
+  fonts?: ManifestFont[];
+  images?: string[];
   style?: ThemeName;
   splitSizeKb?: number;
   parts: ManifestPart[];
+  extraPages?: ManifestExtra[];
 }
+
+const MEDIA_TYPES: Record<string, string> = {
+  jpg: "image/jpeg",
+  jpeg: "image/jpeg",
+  png: "image/png",
+  gif: "image/gif",
+  webp: "image/webp",
+  svg: "image/svg+xml",
+  avif: "image/avif",
+};
 
 export async function createCommand(
   input: string,
@@ -55,8 +82,7 @@ export async function createCommand(
     out?: string;
     title?: string;
     author?: string | string[];
-    language?: string;
-    style?: string;
+    language?: string; style?: string;
     cover?: string | boolean;
     validate?: boolean;
   },
@@ -74,18 +100,20 @@ export async function createCommand(
         : [options.author]
       : manifest.authors ?? [];
 
+  const renderHtml = async (entry: { file?: string; html?: string }): Promise<string> => {
+    if (entry.html) return entry.html;
+    if (!entry.file) return "";
+    const path = isAbsolute(entry.file) ? entry.file : resolve(directory, entry.file);
+    const raw = await readText(path);
+    return /\.(md|markdown)$/i.test(entry.file)
+      ? sanitizeHtml(String(await marked.parse(raw)))
+      : raw;
+  };
+
   const renderChapter = async (chapter: ManifestChapter): Promise<ChapterInput> => {
-    let html = chapter.html ?? "";
-    if (chapter.file) {
-      const path = isAbsolute(chapter.file) ? chapter.file : resolve(directory, chapter.file);
-      const raw = await readText(path);
-      html = /\.(md|markdown)$/i.test(chapter.file)
-        ? sanitizeHtml(String(await marked.parse(raw)))
-        : raw;
-    }
     return {
       title: chapter.title,
-      html,
+      html: await renderHtml(chapter),
       topics: chapter.topics ? await Promise.all(chapter.topics.map(renderChapter)) : undefined,
     };
   };
@@ -98,6 +126,13 @@ export async function createCommand(
       lessons: await Promise.all(part.lessons.map(renderChapter)),
     });
   }
+
+  const extraPages: ChapterInput[] = await Promise.all(
+    (manifest.extraPages ?? []).map(async (extra) => ({
+      title: extra.title,
+      html: await renderHtml(extra),
+    })),
+  );
 
   let cover: BookInput["cover"];
   if (options.cover !== false && options.cover !== "none") {
@@ -118,15 +153,15 @@ export async function createCommand(
     }
   }
 
-  let font: FontInput | undefined;
+  const fonts: FontInput[] = [];
   if (manifest.font) {
-    const path = isAbsolute(manifest.font) ? manifest.font : resolve(directory, manifest.font);
-    font = {
-      data: await readBinary(path),
-      filename: path.split("/").pop() ?? "font.woff2",
-      family: manifest.fontFamily ?? "Noto Serif Bengali",
-    };
+    fonts.push(await loadFont(directory, manifest.font, manifest.fontFamily));
   }
+  for (const item of manifest.fonts ?? []) {
+    fonts.push(await loadFont(directory, item.file, item.family ?? manifest.fontFamily, item.weight, item.style));
+  }
+
+  const images = await loadImages(directory, manifest);
 
   const book: BookInput = {
     title: options.title ?? manifest.title,
@@ -141,7 +176,10 @@ export async function createCommand(
     source: manifest.source,
     rights: manifest.rights,
     cover,
-    font,
+    font: fonts[0],
+    fonts,
+    images,
+    extraPages: extraPages.length > 0 ? extraPages : undefined,
     style: (options.style as ThemeName | undefined) ?? manifest.style ?? "classic",
     splitSizeKb: manifest.splitSizeKb,
     parts,
@@ -163,6 +201,56 @@ export async function createCommand(
 
 export async function readJson<T>(path: string): Promise<T> {
   return JSON.parse(await readFile(path, "utf8")) as T;
+}
+
+async function loadFont(
+  directory: string,
+  file: string,
+  family?: string,
+  weight?: string,
+  style?: string,
+): Promise<FontInput> {
+  const path = isAbsolute(file) ? file : resolve(directory, file);
+  return {
+    data: await readBinary(path),
+    filename: basename(path),
+    family: family ?? "Noto Serif Bengali",
+    weight,
+    style,
+  };
+}
+
+/** Load images listed in the manifest, or every image under `images/`. */
+async function loadImages(directory: string, manifest: Manifest): Promise<BookImage[]> {
+  const files = manifest.images ?? (await imageFiles(join(directory, "images")));
+  const images: BookImage[] = [];
+  const seen = new Set<string>();
+
+  for (const file of files) {
+    const path = isAbsolute(file) ? file : resolve(directory, file);
+    const mediaType = MEDIA_TYPES[extname(path).slice(1).toLowerCase()];
+    if (!mediaType || !(await exists(path))) continue;
+
+    const href = isAbsolute(file)
+      ? `images/${basename(path)}`
+      : relative(directory, path).split(sep).join("/");
+    if (seen.has(href)) continue;
+    seen.add(href);
+    images.push({ href, mediaType, data: await readBinary(path) });
+  }
+
+  return images;
+}
+
+async function imageFiles(dir: string): Promise<string[]> {
+  try {
+    return (await readdir(dir))
+      .filter((name) => MEDIA_TYPES[extname(name).slice(1).toLowerCase()])
+      .sort((a, b) => a.localeCompare(b, undefined, { numeric: true }))
+      .map((name) => `images/${name}`);
+  } catch {
+    return [];
+  }
 }
 
 /**

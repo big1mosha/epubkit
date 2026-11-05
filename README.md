@@ -9,7 +9,7 @@ Create, read, merge, edit and validate EPUB files. Bun workspace with two packag
 
 ```bash
 bun install
-bun run packages/cli/src/cli.ts --help
+bun run packages/cli/src/index.ts --help
 ```
 
 ## Commands
@@ -45,6 +45,9 @@ Editing commands take `-o/--out`, or `--in-place` with optional `--backup`. `--d
   "language": "bn",
   "style": "classic",
   "cover": "cover.jpg",
+  "fonts": [
+    { "file": "fonts/noto-serif-bengali.woff2", "family": "Noto Serif Bengali", "weight": "400 700" }
+  ],
   "parts": [
     {
       "title": "প্রথম অংশ",
@@ -52,9 +55,14 @@ Editing commands take `-o/--out`, or `--in-place` with optional `--backup`. `--d
         { "title": "পাঠ এক", "file": "01.html", "topics": [{ "title": "বিষয়", "file": "01-1.html" }] }
       ]
     }
-  ]
+  ],
+  "extraPages": [{ "title": "কিছু কথা", "file": "intro.html" }]
 }
 ```
+
+Chapter HTML may reference `../images/<name>`. Every image under the input
+folder's `images/` is embedded; set `"images": ["images/a.jpg"]` to limit it.
+`extraPages` become front matter and stay out of the table of contents.
 
 ### Merge
 
@@ -97,5 +105,5 @@ const report = validateEpub(data);
 ```bash
 bun test
 bunx tsc --noEmit
-bun build packages/cli/src/cli.ts --compile --outfile dist/epubkit
+bun build packages/cli/src/index.ts --compile --outfile dist/epubkit
 ```

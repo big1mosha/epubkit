@@ -16,7 +16,7 @@ export interface ThemeContext {
 }
 
 const BASE = `@page {
-  margin: 1.5em 2.5em;
+  margin: 1.5em 2em;
 }
 
 html {
@@ -25,11 +25,11 @@ html {
 
 body {
   margin: 0;
-  padding: 0;
-  color: #1a1a1a;
+  padding: 0 1.5em;
+  color: #000000;
   background: #ffffff;
-  line-height: 1.8;
-  text-align: justify;
+  line-height: 1.45;
+  text-align: left;
   hyphens: manual;
   -webkit-hyphens: manual;
   overflow-wrap: break-word;
@@ -46,26 +46,23 @@ a {
 }
 
 p {
-  margin: 0;
-  text-indent: 1.25em;
-}
-
-p + p {
-  margin-top: 0.35em;
-}
-
-h1, h2, h3, h4, h5, h6 {
-  text-align: center;
-  font-weight: bold;
-  line-height: 1.4;
-  margin: 1.4em 0 0.8em;
+  margin: 0 0 0.6em;
   text-indent: 0;
 }
 
+h1, h2, h3, h4, h5, h6 {
+  text-align: left;
+  font-weight: bold;
+  line-height: 1.35;
+  margin: 1.4em 0 0.7em;
+  text-indent: 0;
+  color: #000000;
+}
+
 blockquote {
-  margin: 1em 1.5em;
+  margin: 1em 0 1em 1.2em;
   padding-left: 1em;
-  border-left: 2px solid #d8d2c4;
+  border-left: 2px solid #cccccc;
   font-style: italic;
 }
 
@@ -77,7 +74,7 @@ hr {
 
 hr::after {
   content: "\\2756";
-  color: #8a7a5c;
+  color: #000000;
 }
 
 ul, ol {
@@ -87,7 +84,7 @@ ul, ol {
 }
 
 li {
-  margin: 0.2em 0;
+  margin: 0.25em 0;
   text-indent: 0;
 }
 
@@ -99,7 +96,7 @@ figure {
 
 figcaption {
   font-size: 0.85em;
-  color: #555;
+  color: #333333;
   margin-top: 0.4em;
   text-align: center;
 }
@@ -112,7 +109,7 @@ table {
 }
 
 th, td {
-  border: 1px solid #c9c2b4;
+  border: 1px solid #bbbbbb;
   padding: 0.35em 0.5em;
   text-align: left;
   vertical-align: top;
@@ -126,7 +123,7 @@ code, pre {
 
 pre {
   white-space: pre-wrap;
-  background: #f6f3ec;
+  background: #f5f5f5;
   padding: 0.8em;
   border-radius: 0.2em;
 }
@@ -152,8 +149,14 @@ body {
   text-align: center;
 }
 
+/* Halftitle: centered vertically and horizontally */
 .halftitle-page {
-  padding-top: 38%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  min-height: 85vh;
+  text-align: center;
 }
 
 .halftitle-page h1 {
@@ -162,82 +165,121 @@ body {
   letter-spacing: 0.02em;
   border: 0;
   margin: 0;
+  text-align: center;
 }
 
+html, body.title-page {
+  height: 100%;
+}
+
+/* Title page: title, author, series all centered in the middle of the page */
 .title-page {
-  padding-top: 22%;
+  display: -webkit-box;
+  display: -webkit-flex;
+  display: flex;
+  -webkit-box-orient: vertical;
+  -webkit-box-direction: normal;
+  -webkit-flex-direction: column;
+  flex-direction: column;
+  -webkit-box-pack: center;
+  -webkit-justify-content: center;
+  justify-content: center;
+  -webkit-box-align: center;
+  -webkit-align-items: center;
+  align-items: center;
+  min-height: 100vh;
+  min-height: 100%;
+  height: 100%;
+  text-align: center;
+}
+
+.title-page section {
+  margin: auto;
+  width: 100%;
+  text-align: center;
 }
 
 .title-page .book-title {
-  font-size: 2.2em;
+  font-size: 2.1em;
   font-weight: bold;
-  line-height: 1.35;
+  line-height: 1.3;
   margin: 0 0 1.2em;
-  color: #5b2c2c;
+  color: #000000;
+  text-align: center;
 }
 
 .title-page .book-author {
   font-size: 1.15em;
-  margin: 0 0 0.4em;
-}
-
-.title-page .book-series {
-  font-size: 0.9em;
-  color: #6b5a44;
-  font-style: italic;
+  margin: 0 0 0.5em;
+  color: #000000;
+  text-align: center;
 }
 
 .title-page .book-publisher {
   font-size: 0.85em;
-  color: #6b5a44;
-  margin-top: 3em;
+  color: #333333;
+  margin-top: 2em;
+  text-align: center;
 }
 
-.title-page .rule,
 .part-page .rule {
   width: 30%;
-  margin: 1.6em auto;
+  margin: 1.4em auto;
   border: 0;
-  border-top: 1px solid #b9a98c;
+  border-top: 1px solid #999999;
+  text-align: center;
 }
 
 .colophon-page {
-  padding-top: 30%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  min-height: 85vh;
   font-size: 0.85em;
-  color: #4a4a4a;
+  color: #333333;
   text-align: center;
 }
 
 .colophon-page p {
   text-indent: 0;
   margin: 0.5em 0;
+  text-align: center;
 }
 
 .part-page {
-  padding-top: 32%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  min-height: 85vh;
+  text-align: center;
 }
 
 .part-page .part-label {
   font-size: 0.85em;
-  letter-spacing: 0.35em;
+  letter-spacing: 0.3em;
   text-transform: uppercase;
-  color: #8a7a5c;
+  color: #000000;
   text-indent: 0;
-  margin: 0 0 1.4em;
+  margin: 0 0 1.2em;
+  text-align: center;
 }
 
 .part-page .part-title {
   font-size: 1.9em;
-  color: #5b2c2c;
+  color: #000000;
   margin: 0;
-  line-height: 1.4;
+  line-height: 1.35;
+  text-align: center;
 }
 
 .part-page .ornament {
-  color: #8a7a5c;
+  color: #000000;
   font-size: 1.1em;
   text-indent: 0;
-  margin-top: 2.4em;
+  margin-top: 2em;
+  text-align: center;
 }
 
 .chapter {
@@ -250,23 +292,29 @@ body {
   break-before: auto;
 }
 
+/* Chapter heading: left aligned */
 .chapter-head {
-  text-align: center;
-  margin: 0 0 1.8em;
+  text-align: left;
+  margin: 0 0 1.6em;
+  padding-bottom: 0.6em;
+  border-bottom: 1px solid #dddddd;
 }
 
 .chapter-label {
   font-size: 0.8em;
-  letter-spacing: 0.28em;
-  color: #8a7a5c;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: #000000;
   text-indent: 0;
-  margin: 0 0 0.7em;
+  margin: 0 0 0.5em;
+  text-align: left;
 }
 
 .chapter-title {
   font-size: 1.5em;
-  color: #5b2c2c;
+  color: #000000;
   margin: 0;
+  text-align: left;
 }
 
 .topic {
@@ -274,31 +322,29 @@ body {
   break-before: page;
 }
 
+/* Topic heading: left aligned */
 .topic-head {
-  text-align: center;
-  margin: 0 0 1.4em;
+  text-align: left;
+  margin: 0 0 1.2em;
 }
 
 .topic-title {
-  font-size: 1.2em;
-  color: #1f3a5f;
+  font-size: 1.35em;
+  color: #000000;
   margin: 0;
-}
-
-.body-text > p:first-of-type {
-  text-indent: 0;
+  text-align: left;
 }
 
 .scene-break {
   text-align: center;
   text-indent: 0;
   margin: 1.2em 0;
-  color: #8a7a5c;
+  color: #000000;
 }
 
 .cover-page {
-  margin: 0;
-  padding: 0;
+  margin: 0 !important;
+  padding: 0 !important;
   text-align: center;
   page-break-after: always;
   break-after: page;
@@ -307,6 +353,56 @@ body {
 .cover-page img {
   max-width: 100%;
   max-height: 100vh;
+}
+
+html, body.somapto-page {
+  height: 100%;
+}
+
+.somapto-page {
+  display: -webkit-box;
+  display: -webkit-flex;
+  display: flex;
+  -webkit-box-orient: vertical;
+  -webkit-box-direction: normal;
+  -webkit-flex-direction: column;
+  flex-direction: column;
+  -webkit-box-pack: center;
+  -webkit-justify-content: center;
+  justify-content: center;
+  -webkit-box-align: center;
+  -webkit-align-items: center;
+  align-items: center;
+  min-height: 100vh;
+  min-height: 100%;
+  height: 100%;
+  text-align: center;
+  page-break-before: always;
+  break-before: page;
+}
+
+.somapto-page section,
+.somapto-page .somapto-section {
+  margin: auto;
+  width: 100%;
+  text-align: center;
+}
+
+.somapto-page .somapto-text {
+  font-size: 2.2em;
+  font-weight: bold;
+  text-align: center;
+  margin: 0;
+  color: #000000;
+}
+
+.frontmatter-page {
+  page-break-before: always;
+  break-before: page;
+}
+
+.frontmatter-page .body-text {
+  margin: 2em 0;
 }
 
 nav#toc ol {
@@ -321,14 +417,17 @@ nav#toc ol ol {
 
 nav#toc li {
   margin: 0.45em 0;
+  text-align: left;
 }
 
 nav#toc a {
   text-decoration: none;
+  color: #000000;
 }
 
 nav#toc h1 {
-  margin-bottom: 1.6em;
+  margin-bottom: 1.4em;
+  text-align: left;
 }
 
 .center {
@@ -343,22 +442,58 @@ body {
   font-size: 1em;
 }
 
+html, body.title-page, body.somapto-page {
+  height: 100%;
+}
+
 .halftitle-page,
 .title-page,
 .colophon-page,
-.part-page {
+.part-page,
+.somapto-page {
   page-break-before: always;
   break-before: page;
+  display: -webkit-box;
+  display: -webkit-flex;
+  display: flex;
+  -webkit-box-orient: vertical;
+  -webkit-box-direction: normal;
+  -webkit-flex-direction: column;
+  flex-direction: column;
+  -webkit-box-pack: center;
+  -webkit-justify-content: center;
+  justify-content: center;
+  -webkit-box-align: center;
+  -webkit-align-items: center;
+  align-items: center;
+  min-height: 100vh;
+  min-height: 100%;
+  height: 100%;
   text-align: center;
 }
 
-.halftitle-page,
-.title-page {
-  padding-top: 30%;
+.title-page section,
+.somapto-page section {
+  margin: auto;
+  width: 100%;
+  text-align: center;
 }
 
-.part-page {
-  padding-top: 35%;
+.somapto-page .somapto-text {
+  font-size: 2.2em;
+  font-weight: bold;
+  text-align: center;
+  margin: 0;
+  color: #000000;
+}
+
+.frontmatter-page {
+  page-break-before: always;
+  break-before: page;
+}
+
+.frontmatter-page .body-text {
+  margin: 2em 0;
 }
 
 .part-page .part-label,
@@ -366,10 +501,13 @@ body {
   font-size: 0.85em;
   letter-spacing: 0.2em;
   text-indent: 0;
+  text-align: left;
+  color: #000000;
 }
 
 .part-page .part-title {
   font-size: 1.8em;
+  text-align: center;
 }
 
 .chapter {
@@ -378,12 +516,13 @@ body {
 }
 
 .chapter-head {
-  text-align: center;
-  margin-bottom: 1.5em;
+  text-align: left;
+  margin-bottom: 1.4em;
 }
 
 .chapter-title {
   font-size: 1.4em;
+  text-align: left;
 }
 
 .topic {
@@ -391,7 +530,19 @@ body {
   break-before: page;
 }
 
+.topic-head {
+  text-align: left;
+  margin-bottom: 1.2em;
+}
+
+.topic-title {
+  font-size: 1.3em;
+  text-align: left;
+}
+
 .cover-page {
+  margin: 0 !important;
+  padding: 0 !important;
   text-align: center;
   page-break-after: always;
   break-after: page;

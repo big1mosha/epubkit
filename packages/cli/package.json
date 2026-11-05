@@ -4,7 +4,7 @@
   "type": "module",
   "private": true,
   "bin": {
-    "epubkit": "./src/cli.ts"
+    "epubkit": "./src/index.ts"
   },
   "dependencies": {
     "@epubkit/core": "workspace:*",

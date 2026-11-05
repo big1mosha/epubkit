@@ -33,22 +33,10 @@ export function buildNavDocument(
       .join("\n");
   };
 
-  const firstHref = entries[0] ? linkFrom(options.navPath, entries[0]) : options.navPath;
-
   const body = `  <nav epub:type="toc" id="toc">
     <h1>${escapeXml(options.title)}</h1>
     <ol>
 ${items(entries)}
-    </ol>
-  </nav>
-  <nav epub:type="landmarks" id="landmarks" hidden="hidden">
-    <ol>
-      <li><a epub:type="toc" href="${escapeAttr(options.navPath.split("/").pop() ?? "nav.xhtml")}">${escapeXml(
-        options.title,
-      )}</a></li>
-      <li><a epub:type="bodymatter" href="${escapeAttr(firstHref)}">${escapeXml(
-        options.title,
-      )}</a></li>
     </ol>
   </nav>`;
 

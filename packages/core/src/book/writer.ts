@@ -7,7 +7,7 @@ import { serializeNode, type DomNode } from "../html/serialize.ts";
 import { xhtmlDocument } from "../html/xhtml.ts";
 import { buildNavDocument, buildNcxDocument } from "./nav-build.ts";
 import { themeCss, type ThemeName } from "../style/themes.ts";
-import { escapeAttr, escapeXml, isoNow, toLocalNumber } from "../util/text.ts";
+import { escapeAttr, escapeXml, isoNow, toBengaliNumber, toLocalNumber } from "../util/text.ts";
 import { labelsFor, type BookInput, type BuildResult, type ChapterInput, type PartInput } from "./types.ts";
 
 interface NavEntry {
@@ -91,8 +91,25 @@ function partPageHtml(label: string, title: string): string {
 </section>`;
 }
 
-function hasOwnNumber(title: string): boolean {
-  return /^\s*[০-৯0-9]+(?:\s*[.)।:-])?/.test(title);
+const BN_DIGITS = ["০", "১", "২", "৩", "৪", "৫", "৬", "৭", "৮", "৯"];
+
+function formatNavTitle(title: string, index: number, language: string): string {
+  if (!language.startsWith("bn")) return title;
+  const match = /^(\s*)([0-9]+|[০-৯]+)([\s.)।:-]+)(.*)$/.exec(title);
+  if (match) {
+    const num = match[2]!;
+    const rest = match[4]!;
+    const bnNum = num.split("").map((d) => BN_DIGITS[Number(d)] ?? d).join("");
+    return `${bnNum}. ${rest.trim()}`;
+  }
+  return `${toBengaliNumber(index)}. ${title.trim()}`;
+}
+
+/** Treat "none"/"null" placeholders from metadata sources as missing. */
+function metaText(value: string | undefined): string | undefined {
+  const text = value?.trim();
+  if (!text) return undefined;
+  return /^(none|null|undefined|n\/a)$/i.test(text) ? undefined : text;
 }
 
 function toNavInput(entry: NavEntry): { label: string; href: string; children: any[] } {
@@ -144,30 +161,28 @@ export function buildEpub(input: BookInput): BuildResult {
   </section>`,
       inSpine: true,
     });
-    nav.push({ label: labels.cover, href: "text/cover.xhtml", children: [] });
   }
 
   // ---- Half title --------------------------------------------------------
-  addPage({
-    id: "halftitle",
-    href: "text/halftitle.xhtml",
-    title: input.title,
-    bodyClass: "halftitle-page",
-    body: `  <section epub:type="frontmatter">
+  if (input.includeHalftitle === true) {
+    addPage({
+      id: "halftitle",
+      href: "text/halftitle.xhtml",
+      title: input.title,
+      bodyClass: "halftitle-page",
+      body: `  <section epub:type="frontmatter">
     <h1>${escapeXml(input.title)}</h1>
   </section>`,
-    inSpine: true,
-  });
+      inSpine: true,
+    });
+  }
 
   // ---- Title page --------------------------------------------------------
-  const authorLine = (input.authors ?? []).length
-    ? `  <p class="book-author">${escapeXml((input.authors ?? []).join(", "))}</p>\n`
-    : "";
-  const seriesLine = input.series
-    ? `  <p class="book-series">${escapeXml(labels.series)}: ${escapeXml(input.series)}</p>\n`
-    : "";
-  const publisherLine = input.publisher
-    ? `  <p class="book-publisher">${escapeXml(input.publisher)}</p>\n`
+  const authors = metaText((input.authors ?? []).join(", "));
+  const authorLine = authors ? `  <p class="book-author">${escapeXml(authors)}</p>\n` : "";
+  const publisher = metaText(input.publisher);
+  const publisherLine = publisher
+    ? `  <p class="book-publisher">${escapeXml(publisher)}</p>\n`
     : "";
   addPage({
     id: "titlepage",
@@ -176,27 +191,28 @@ export function buildEpub(input: BookInput): BuildResult {
     bodyClass: "title-page",
     body: `  <section epub:type="titlepage">
     <h1 class="book-title">${escapeXml(input.title)}</h1>
-${authorLine}${seriesLine}  <hr class="rule"/>
-${publisherLine}  </section>`,
+${authorLine}${publisherLine}  </section>`,
     inSpine: true,
   });
-  nav.push({ label: labels.titlePage, href: "text/titlepage.xhtml", children: [] });
+  if (input.includeTitlePageInNav === true) {
+    nav.push({ label: labels.titlePage, href: "text/titlepage.xhtml", children: [] });
+  }
 
   // ---- Colophon ----------------------------------------------------------
-  if (input.includeColophon !== false) {
+  if (input.includeColophon === true) {
     const sourceLine = input.source
       ? `    <p>${escapeXml(labels.source)}: <a href="${escapeAttr(input.source)}">${escapeXml(
-          input.source,
-        )}</a></p>\n`
+        input.source,
+      )}</a></p>\n`
       : "";
     const collectedLine = input.date
       ? `    <p>${escapeXml(labels.collected)}: ${escapeXml(input.date)}</p>\n`
       : "";
     const extra = input.colophon
       ? input.colophon
-          .split(/\n{2,}/)
-          .map((para) => `    <p>${escapeXml(para.trim())}</p>`)
-          .join("\n")
+        .split(/\n{2,}/)
+        .map((para) => `    <p>${escapeXml(para.trim())}</p>`)
+        .join("\n")
       : `    <p>${escapeXml(input.rights ?? labels.personal)}</p>`;
     addPage({
       id: "colophon",
@@ -207,6 +223,29 @@ ${publisherLine}  </section>`,
 ${sourceLine}${collectedLine}${extra}
   </section>`,
       inSpine: true,
+    });
+  }
+
+  // ---- Extra Pages (Intro / Frontmatter) ----------------------------------
+  const extraPageIds: string[] = [];
+  if (input.extraPages && input.extraPages.length > 0) {
+    input.extraPages.forEach((extra, index) => {
+      const extraId = `intro-${String(index + 1).padStart(3, "0")}`;
+      const extraHref = `text/${extraId}.xhtml`;
+      extraPageIds.push(extraId);
+      const cleanHtml = sanitizeHtml(fragmentOf(extra.html ?? ""), { title: extra.title });
+      addPage({
+        id: extraId,
+        href: extraHref,
+        title: extra.title || labels.contents,
+        bodyClass: "frontmatter-page",
+        body: `  <section class="frontmatter-page" epub:type="frontmatter">
+    <div class="body-text">
+${cleanHtml}
+    </div>
+  </section>`,
+        inSpine: true,
+      });
     });
   }
 
@@ -229,7 +268,7 @@ ${sourceLine}${collectedLine}${extra}
       if (index === 0) firstHref = href;
       const headingHtml =
         index === 0 && options.heading
-          ? `${chapterHeading(options.label ?? null, item.title, "h2")}\n`
+          ? `<header class="chapter-head">\n  <h2 class="chapter-title">${escapeXml(item.title)}</h2>\n</header>\n`
           : "";
       const body = `  <section class="chapter${index > 0 ? " continued" : ""}" epub:type="chapter">
 ${headingHtml}  <div class="body-text">
@@ -246,7 +285,11 @@ ${chunk}
       });
     });
 
-    options.navParent.push({ label: item.title, href: firstHref, children: [] });
+    const navLabel =
+      input.numberToc !== false && language.startsWith("bn")
+        ? formatNavTitle(item.title, chapterNo, language)
+        : item.title;
+    options.navParent.push({ label: navLabel, href: firstHref, children: [] });
   };
 
   for (const part of input.parts as PartInput[]) {
@@ -329,13 +372,10 @@ ${chunk}
         continue;
       }
 
-      const label = hasOwnNumber(lesson.title)
-        ? null
-        : `${labels.chapter} ${toLocalNumber(chapterNo + 1, language)}`;
       emitChapter(lesson, {
         navParent: partNav,
         heading: true,
-        label: label ?? undefined,
+        label: undefined,
       });
       const entry = partNav[partNav.length - 1]!;
       for (const topic of topics) emitTopic(topic, entry.children);
@@ -411,8 +451,23 @@ ${clean}
   });
   addManifest({ id: "ncx", href: "toc.ncx", mediaType: "application/x-dtbncx+xml", properties: [] });
 
+  // ---- End page ------------------------------------------------
+  if (input.includeEnd !== false) {
+    const somaptoText = labels.end ?? (language.startsWith("bn") ? "সমাপ্ত" : "The End");
+    addPage({
+      id: "somapto",
+      href: "text/somapto.xhtml",
+      title: somaptoText,
+      bodyClass: "somapto-page",
+      body: `  <section class="somapto-section" epub:type="backmatter">
+    <p class="somapto-text"><strong>${escapeXml(somaptoText)}</strong></p>
+  </section>`,
+      inSpine: true,
+    });
+  }
+
   // ---- Spine -------------------------------------------------------------
-  const frontMatter = new Set(["cover", "halftitle", "titlepage", "colophon"]);
+  const frontMatter = new Set(["cover", "halftitle", "titlepage", "colophon", ...extraPageIds]);
   const frontPages = pages.filter((item) => item.inSpine && frontMatter.has(item.id));
   const bodyPages = pages.filter((item) => item.inSpine && !frontMatter.has(item.id));
   spine.push(
